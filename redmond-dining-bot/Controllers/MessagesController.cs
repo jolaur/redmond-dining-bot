@@ -10,6 +10,8 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using System.Web.Http;
+using Microsoft.Bot.Builder.Dialogs;
+
 
 namespace msftbot
 {
@@ -24,10 +26,10 @@ namespace msftbot
                 ConnectorClient connector = new ConnectorClient(new Uri(activity.ServiceUrl));
 
                 #region LUIS
-                string diningoption;
+                string diningoption=String.Empty;
                 Luis diLUIS = await GetEntityFromLUIS(activity.Text);
                 
-                if (diLUIS.intents.Count() > 0 && diLUIS.entities.Count() > 0)
+                if (diLUIS.intents.Count() > 0 /*&& diLUIS.entities.Count() > 0*/)
                 {
                     switch (diLUIS.intents[0].intent)
                     {
@@ -42,6 +44,10 @@ namespace msftbot
                         // change this back to GetMenu if test does not work out
                         case "find-menu": //find-food is an intent from LUIS
                             diningoption = await GetCafeMenu(diLUIS.entities[0].entity);
+                            
+                            //Implements echo bot when dining option fails
+                            if (diningoption==null)
+                                await Conversation.SendAsync(activity, () => new FindMenuDialog());
                             break;
 
                         default:
@@ -54,9 +60,10 @@ namespace msftbot
                     diningoption = "Sorry, I am not getting you...";
                 }
                 #endregion               
-
+                
                 Activity reply = activity.CreateReply(diningoption);
-                await connector.Conversations.ReplyToActivityAsync(reply);
+                if (diningoption != null)
+                    await connector.Conversations.ReplyToActivityAsync(reply);
             }
             else
             {
@@ -64,6 +71,72 @@ namespace msftbot
             }
             var response = Request.CreateResponse(HttpStatusCode.OK);
             return response;
+        }
+
+
+        [Serializable]
+        public class FindMenuDialog : IDialog<object>
+        {
+            protected int count = 1;
+
+            public async Task StartAsync(IDialogContext context)
+            {
+
+                context.Wait(MessageReceivedAsync);
+            }
+
+            public virtual async Task MessageReceivedAsync(IDialogContext context, IAwaitable<IMessageActivity> argument)
+            {
+
+                var message = await argument;
+
+                if (message.Text == "reset")
+                {
+
+                    PromptDialog.Confirm(
+
+                        context,
+
+                        AfterResetAsync,
+
+                        "Are you sure you want to reset the count?",
+
+                        "Didn't get that!",
+
+                        promptStyle: PromptStyle.None);
+
+                }
+
+                else
+                {
+
+                    await context.PostAsync(string.Format("Sorry, that dining location doesn't exist.", this.count++, message.Text));
+                    context.Wait(MessageReceivedAsync);
+
+                }
+
+
+
+            }
+
+            public async Task AfterResetAsync(IDialogContext context, IAwaitable<bool> argument)
+            {
+                var confirm = await argument;
+                if (confirm)
+                {
+                    this.count = 1;
+                    await context.PostAsync("Reset count.");
+                }
+
+                else
+                {
+                    await context.PostAsync("Did not reset count.");
+                }
+                
+                context.Wait(MessageReceivedAsync);
+                
+
+            }
         }
 
         private async Task<string> GetAllCafes()
@@ -185,7 +258,7 @@ namespace msftbot
             }
             catch
             {
-                menu += "Menu not found.";
+                menu = null;
             }
 
             // Return list
