@@ -1,4 +1,5 @@
 ﻿using DiningLUISNS;
+using Microsoft.Bot.Builder.Dialogs;
 using Microsoft.Bot.Connector;
 using Newtonsoft.Json;
 using System;
@@ -22,19 +23,23 @@ namespace msftbot
         static string Origin = String.Empty;
         #endregion
 
+        #region Cafe Variables
+        static bool ContextCafe = false;
+        #endregion
+
+
         public async Task<HttpResponseMessage> Post([FromBody]Activity activity)
         {
             
             if (activity.Type == "message")
             {
                 ConnectorClient connector = new ConnectorClient(new Uri(activity.ServiceUrl));
+                string BotResponse = null;
 
                 //quick response
                 Activity reply = activity.CreateReply("Working on your request now!");
                 await connector.Conversations.ReplyToActivityAsync(reply);
 
-                #region LUIS
-                string BotResponse = "Sorry. I don't understand what you are saying.";
                 Luis diLUIS = await GetEntityFromLUIS(activity.Text);
 
                 if (diLUIS.intents.Count() > 0)
@@ -44,6 +49,7 @@ namespace msftbot
                         case "list-all-cafe": //find-food is an intent from LUIS
                             if (diLUIS.entities.Count() > 0) //Expect entities
                                 BotResponse = await GetAllCafes();
+
                             break;
 
                         case "find-food": //find-food is an intent from LUIS
@@ -51,10 +57,16 @@ namespace msftbot
                                 BotResponse = await GetCafeForItem(diLUIS.entities[0].entity);
                             break;
 
-                        // change this back to GetMenu if test does not work out
                         case "find-menu": //find-food is an intent from LUIS
                             if (diLUIS.entities.Count() > 0) //Expect entities
                                 BotResponse = await GetCafeMenu(diLUIS.entities[0].entity);
+
+                            if (BotResponse == null)
+                            {
+                                await Conversation.SendAsync(activity, () => new CafeNotFoundDialog());
+                                //ContextCafe = false;
+                            }
+
                             break;
 
                         case "schedule shuttle":
@@ -92,6 +104,10 @@ namespace msftbot
                                 BotResponse = "Okay, I scheduled a shuttle for you from building " + Origin + " to building " + Destination + ". Your Confirmation Number is "+ RandomNumber(10000, 99999)+".";
                                 ResetShuttleVariables();
                             }
+                            if (ContextCafe)
+                            {
+                                await Conversation.SendAsync(activity, () => new CafeNotFoundDialog());
+                            }
                             break;
 
                         case "no":
@@ -99,6 +115,11 @@ namespace msftbot
                             {
                                 BotResponse = "I'm sorry, let's start over then. What do you want me to do?";
                                 ResetShuttleVariables();
+                            }
+                            if (ContextCafe)
+                            {
+                                Activity haveagoodday = activity.CreateReply("Have a good day");
+                                await connector.Conversations.ReplyToActivityAsync(haveagoodday);
                             }
                             break;
 
@@ -111,10 +132,12 @@ namespace msftbot
                 {
                     BotResponse = "Sorry, I am not getting you...";
                 }
-                #endregion               
 
-                reply = activity.CreateReply(BotResponse);
-                await connector.Conversations.ReplyToActivityAsync(reply);
+                if (BotResponse != null)
+                {
+                    reply = activity.CreateReply(BotResponse);
+                    await connector.Conversations.ReplyToActivityAsync(reply);
+                }
             }
             else
             {
@@ -154,7 +177,7 @@ namespace msftbot
             return response;
         }
 
-        private async Task<string> GetAllCafes()
+        public static async Task<string> GetAllCafes()
         {
             // Get authentication token from authentication.cs
             Authentication auth = new Authentication();
@@ -207,6 +230,8 @@ namespace msftbot
 
         private async Task<string> GetCafeMenu(string location)
         {
+            ContextCafe = true;
+
             //do this first to avoid lots of extra processing.
             // Get the day of the week (1 – 5) for use in API URI. 
             DateTime day = DateTime.Now;
@@ -220,7 +245,6 @@ namespace msftbot
                 menu.AppendLine("Cafes are not open on the weekend. Sorry!");
                 return menu.ToString();
             }
-
 
             // Get authentication token from authentication.cs
             Authentication auth = new Authentication();
@@ -276,10 +300,17 @@ namespace msftbot
             }
             catch
             {
-                menu.AppendLine("Menu not found.");
+                menu = null;
             }
             // Return list
-            return menu.ToString();
+            if (menu == null)
+            {
+                return null;
+            }
+            else
+            {
+                return menu.ToString();
+            }
         }
 
         private async Task<Luis> GetEntityFromLUIS(string Query)
