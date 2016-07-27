@@ -1,13 +1,13 @@
-﻿using System;
+﻿using msftbot.Support;
+using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
-using System.Text;
+using System.Diagnostics;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using msftbot.Support;
-using Newtonsoft.Json;
-using System.Diagnostics;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace msftbot
 {
@@ -55,11 +55,13 @@ namespace msftbot
 
         internal async Task<string> GetAllCafes()
         {
-#if DEBUG
+            #region DEBUG
+            #if DEBUG
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
             Debug.WriteLine("Cafe.cs Timer start, time elapsed at start: {0}", stopwatch.Elapsed);
-#endif
+            #endif
+            #endregion
 
             if (allCafeList == null)
             {
@@ -77,6 +79,7 @@ namespace msftbot
                 #region DEBUG
                 Debug.WriteLine("Cafe.cs get JSON completed - Time elapsed at start: {0}", stopwatch.Elapsed);
                 #endregion
+
                 // Convert JSON to list
                 allCafeList = JsonConvert.DeserializeObject<List<Cafe>>(responseBody);
             }
@@ -103,11 +106,14 @@ namespace msftbot
 
         internal async Task<string> GetCafeForItem(string dining)
         {
-#if DEBUG
+            #region DEBUG
+            #if DEBUG
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
             Debug.WriteLine("Cafe.cs Timer start, time elapsed at start: {0}", stopwatch.Elapsed);
-#endif
+            #endif
+            #endregion
+
             // Get authentication token from authentication.cs
             Authentication auth = new Authentication();
             string authtoken = await auth.GetAuthHeader();
@@ -141,11 +147,13 @@ namespace msftbot
 
         internal async Task<string> GetCafeMenu(string location, string DayOfWeekFromLuis)
         {
-#if DEBUG
+            #region DEBUG
+            #if DEBUG
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
             Debug.WriteLine("Cafe.cs Timer start, time elapsed at start: {0}", stopwatch.Elapsed);
-#endif
+            #endif
+            #endregion
 
             // String menu - empty string will be populating from json response.
             StringBuilder menu = new StringBuilder();
@@ -224,7 +232,6 @@ namespace msftbot
 
             try
             {
-
                 //Get JSON – Cafe menu
                 HttpResponseMessage response = await httpClient.GetAsync(string.Format(Constants.listCafeMenu, newid, today));
                 response.EnsureSuccessStatusCode();
@@ -257,6 +264,7 @@ namespace msftbot
             Debug.WriteLine("Cafe.cs about to return list - Time elapsed at start: {0}", stopwatch.Elapsed);
             stopwatch.Reset();
             #endregion
+
             // Return list
             return menu.ToString();
         }

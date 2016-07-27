@@ -140,6 +140,7 @@
     <Compile Include="Controllers\Luis.cs" />
     <Compile Include="Controllers\MessagesController.cs" />
     <Compile Include="Controllers\Shuttle.cs" />
+    <Compile Include="Controllers\Weather.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>

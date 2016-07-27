@@ -1,14 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using System.Text;
-using System.Linq;
+﻿using msftbot.Support;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using msftbot.Support;
-using Newtonsoft.Json;
-using Microsoft.Bot.Builder.Dialogs;
-using Microsoft.Bot.Builder.FormFlow;
+using System.Threading.Tasks;
 
 namespace msftbot
 {

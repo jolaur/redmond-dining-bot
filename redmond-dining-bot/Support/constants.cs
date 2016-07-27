@@ -18,6 +18,7 @@ namespace msftbot.Support
         public const string findFoodIntent = "find-food";
         public const string findMenuIntent = "find-menu";
         public const string scheduleShuttleIntent = "schedule shuttle";
+        public const string getWeather = "weather";
 
         /// <summary>
         /// Dialogue Strings
@@ -49,8 +50,8 @@ namespace msftbot.Support
         public const string listCafesServingItem = "https://msrefdiningint.azurewebsites.net/api/v1/cafe/Name/{0}";
         public const string listCafeMenu = "https://msrefdiningint.azurewebsites.net/api/v1/menus/building/{0}/weekday/{1}";
         public const string luisCallApi = "https://api.projectoxford.ai/luis/v1/application?id=f11f7c0a-e4b1-47a3-9842-e825dc6b9922&subscription-key=daaf89e73e87447a9d5c45e24c23dbde&q={0}";
-
         public const string dinningMenuWebsiteUrl = "https://microsoft.sharepoint.com/sites/refweb/Pages/Dining-Menus.aspx?cafe=Café";
+        public const string weatherRedmond = "https://query.yahooapis.com/v1/public/yql?q=select%20item.condition.text%20from%20weather.forecast%20where%20woeid%20in%20(select%20woeid%20from%20geo.places(1)%20where%20text%3D%22redmond%2C%20wa%22)&format=json&env=store%3A%2F%2Fdatatables.org%2Falltableswithkeys";
 
         /// <summary>
         /// Not sure how this is used.....

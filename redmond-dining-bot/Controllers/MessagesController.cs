@@ -1,21 +1,14 @@
 ﻿using DiningLUISNS;
 using Microsoft.Bot.Connector;
+using msftbot.Support;
 using Newtonsoft.Json;
 using System;
-using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Text;
 using System.Threading.Tasks;
 using System.Web.Http;
-using msftbot;
-using msftbot.Controllers;
-using msftbot.Support;
-using Microsoft.Bot.Builder.Dialogs;
-using Microsoft.Bot.Builder.FormFlow;
-using System.Diagnostics;
 
 namespace msftbot.Controllers.Messages
 {
@@ -25,9 +18,13 @@ namespace msftbot.Controllers.Messages
         CafeActions CafeAction = new CafeActions();
         ShuttleActions ShuttleAction = new ShuttleActions();
         FoodTruckActions FoodTruckAction = new FoodTruckActions();
-        #if DEBUG
-                public Stopwatch stopwatch = new Stopwatch();
+        WeatherActions WeaterAction = new WeatherActions();
+
+        #region DEBUG
+#if DEBUG
+        public Stopwatch stopwatch = new Stopwatch();
         #endif
+        #endregion
 
         public async Task<HttpResponseMessage> Post([FromBody]Activity activity)
         {
@@ -35,10 +32,14 @@ namespace msftbot.Controllers.Messages
             if (activity.Type == ActivityTypes.Message)
             {
                 ConnectorClient connector = new ConnectorClient(new Uri(activity.ServiceUrl));
+
+                #region DEBUG
                 #if DEBUG
-                        stopwatch.Start();
+                stopwatch.Start();
                         Debug.WriteLine("MC Timer start, time elapsed at start: {0}", stopwatch.Elapsed);
                 #endif
+                #endregion
+
                 //For picking up from a shuttle booking in progress
                 StateClient stateClient = activity.GetStateClient();
                 BotData userData = await stateClient.BotState.GetUserDataAsync(activity.ChannelId, activity.From.Id);
@@ -80,30 +81,46 @@ namespace msftbot.Controllers.Messages
                 {                    
                     switch (diLUIS.intents[0].intent)
                     {
-                        case Constants.listFoodTruckIntent: //find-food is an intent from LUIS
-                            SetConversationToOngoingActivity(stateClient, userData, activity, "listFoodtruck");
+                        case Constants.getWeather: //weather is an intent from LUIS
+                            //SetConversationToOngoingActivity(stateClient, userData, activity, "getWeather");
+                            if (diLUIS.entities.Count() > 0) //Expect entities
+                            {
+                                #region DEBUG
+                                Debug.WriteLine("MC weather - Time elapsed at start: {0}", stopwatch.Elapsed);
+                                #endregion
+
+                                BotResponse = await WeaterAction.GetWeather();
+                            }
+                            break;
+
+                        case Constants.listFoodTruckIntent: //food-truck is an intent from LUIS
+                            //SetConversationToOngoingActivity(stateClient, userData, activity, "listFoodtruck");
                             if (diLUIS.entities.Count() > 0) //Expect entities
                             {
                                 #region DEBUG
                                 Debug.WriteLine("MC food trucks - Time elapsed at start: {0}", stopwatch.Elapsed);
                                 #endregion
+
                                 BotResponse = await FoodTruckAction.GetAllFoodTruck();
                             }
                             break;
 
                         case Constants.listCafeIntent: //find-food is an intent from LUIS
-                            SetConversationToOngoingActivity(stateClient, userData, activity,"listCafe");
+                            //SetConversationToOngoingActivity(stateClient, userData, activity,"listCafe");
                             if (diLUIS.entities.Count() > 0) //Expect entities
-                            { 
+                            {
+                                #region DEBUG
                                 #if DEBUG
                                 Debug.WriteLine("MC get all cafes - Time elapsed at start: {0}", stopwatch.Elapsed);
                                 #endif
+                                #endregion
+
                                 BotResponse = await CafeAction.GetAllCafes();
                             }
                             break;
 
                         case Constants.findFoodIntent: //find-food is an intent from LUIS
-                            SetConversationToOngoingActivity(stateClient, userData, activity,"findFood");
+                            //SetConversationToOngoingActivity(stateClient, userData, activity,"findFood");
                             
                             //Sending quick reply
                             Activity quickReply = activity.CreateReply("Searching for locations with " + diLUIS.entities[0].entity);
@@ -114,13 +131,13 @@ namespace msftbot.Controllers.Messages
                                 #region DEBUG
                                 Debug.WriteLine("MC food look up - Time elapsed at start: {0}", stopwatch.Elapsed);
                                 #endregion
+
                                 BotResponse = await CafeAction.GetCafeForItem(diLUIS.entities[0].entity);
                             }
                             break;
 
-                        // change this back to GetMenu if test does not work out
-                        case Constants.findMenuIntent: //find-food is an intent from LUIS
-                            SetConversationToOngoingActivity(stateClient, userData, activity, "findMenu");
+                        case Constants.findMenuIntent: //find-menu is an intent from LUIS
+                            //SetConversationToOngoingActivity(stateClient, userData, activity, "findMenu");
 
                             //Sending quick reply
                             quickReply = activity.CreateReply("Gathering menus from " + diLUIS.entities[0].entity);
@@ -151,7 +168,6 @@ namespace msftbot.Controllers.Messages
 
                             //Setting the state of the conversation to active session.
                             SetConversationToOngoingActivity(stateClient,userData,activity,"bookShuttle");
-
                             BotResponse = ContinueActivity(connector, stateClient, activity, ref userData);
                             break;
 
@@ -161,6 +177,7 @@ namespace msftbot.Controllers.Messages
                                 BotResponse = string.Format(Constants.helpDialogue,Environment.NewLine);
                             }
                             break;
+
                         default:
                             BotResponse = "Sorry, I can't understand your intent.";
                             break;
